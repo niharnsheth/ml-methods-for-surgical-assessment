@@ -1,0 +1,2 @@
+model_checkpoint_path: "D:\\Documents\\PycharmProjects\\SurgicalActionClassification/Data/Saved/my-test-model"
+all_model_checkpoint_paths: "D:\\Documents\\PycharmProjects\\SurgicalActionClassification/Data/Saved/my-test-model"
