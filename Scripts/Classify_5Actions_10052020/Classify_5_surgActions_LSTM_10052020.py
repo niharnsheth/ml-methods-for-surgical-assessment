@@ -6,7 +6,8 @@ import sqlite3
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-import random
+from random import seed
+from random import random
 import csv
 from tensorflow.python import keras
 from tensorflow.keras import Sequential

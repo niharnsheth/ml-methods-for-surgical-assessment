@@ -122,6 +122,7 @@ for file_no in range(len(df)):
     ang_velocity_quat_arr = qt.quaternion_time_series.angular_velocity(quat_arr, euler_angles_arr[:,-1])
     ang_velocity_quat_arr = np.absolute(ang_velocity_quat_arr)
 
+    # connect all numpy arrays to make all features input data
     partial_features = np.hstack((pos_values_array[:,0:3],np_quaternions_arr))
     partial_features = np.hstack((partial_features,np.c_[x_linear_velocity],
                                   np.c_[y_linear_velocity],
@@ -159,6 +160,7 @@ ang_vel_x = (0,150)
 ang_vel_y = (0,150)
 ang_vel_z = (0,190)
 
+
 #  input msx and min to normalize data
 def normalize_dataframe_column_custom(min, max, input_df, feature_list):
     df_copy = input_df.copy()
@@ -167,7 +169,7 @@ def normalize_dataframe_column_custom(min, max, input_df, feature_list):
     return df_copy
 
 
-def normalize_array_columns_custom(input_array, thresh_min: int, thresh_max: int):
+def normalize_array_column_custom(input_array, thresh_min: int, thresh_max: int):
     local_array = np.empty([input_array.size])
     # print('Size of array: ', input_array.size)
     for x in range(input_array.size):
@@ -185,32 +187,46 @@ def normalize_input(x, x_min, x_max):
         return (x - x_min) / (x_max - x_min)
 
 
-def scale_input(value, scale_value):
-    if value > 0:
-        return scale_value - value
-    else:
-        return scale_value + value
-
-
-# use max and min values in sequence to normalize data
-def normalize_column(input_df, feature_name):
-    df_copy = input_df.copy()
-    for feature in feature_name:
-        max_value = input_df[feature].max()
-        min_value = input_df[feature].min()
-        if max_value == min_value:
-            print("Error: Cannot normalize when max and min values are equal")
-            return df_copy
-        df_copy[feature] = (input_df[feature] - min_value) / (max_value - min_value)
-    return df_copy
-
 for file_no in range(len(df)):
     # normalize position and orientation values
-    df[file_no] = normalize_dataframe_column_custom(pos_x[0], pos_x[1], df, ['X'])
-    df[file_no] = normalize_dataframe_column_custom(pos_y[0], pos_y[1], df, ['Y'])
-    df[file_no] = normalize_dataframe_column_custom(pos_z[0], pos_z[1], df, ['Z'])
+    df[file_no][:,0] = normalize_array_column_custom(df[file_no][:,0], pos_x[0], pos_x[1])
+    df[file_no][:,1] = normalize_array_column_custom(df[file_no][:,1], pos_y[0], pos_y[1])
+    df[file_no][:,2] = normalize_array_column_custom(df[file_no][:,2], pos_z[0], pos_z[1])
 
     # normalize linear velocity
-    x_norm_linear_velocity = normalize_array_columns_custom(x_linear_velocity, vel_x[0], vel_x[1])
-    y_norm_linear_velocity = normalize_array_columns_custom(y_linear_velocity, vel_y[0], vel_y[1])
-    z_norm_linear_velocity = normalize_array_columns_custom(z_linear_velocity, vel_z[0], vel_z[1])
+    df[file_no][:,7]= normalize_array_column_custom(df[file_no][:,7], vel_x[0], vel_x[1])
+    df[file_no][:,8]= normalize_array_column_custom(df[file_no][:,8], vel_x[0], vel_x[1])
+    df[file_no][:,9]= normalize_array_column_custom(df[file_no][:,9], vel_x[0], vel_x[1])
+
+    # normalize angular velocity
+    df[file_no][:,10] = normalize_array_column_custom(df[file_no][:,10], ang_vel_x[0], ang_vel_x[1])
+    df[file_no][:,11] = normalize_array_column_custom(df[file_no][:,11], ang_vel_y[0], ang_vel_y[1])
+    df[file_no][:,12] = normalize_array_column_custom(df[file_no][:,12], ang_vel_z[0], ang_vel_z[1])
+
+
+#%% =================================== Standardize Input data =================================== %%#
+# ------------------------------- Standardize input features  ---------------------------------------#
+
+
+#%% ======================================== Split data ========================================== %%#
+# ------------------------ Split data into training and testing sets  -------------------------------#
+
+random.seed(1)
+test_subjects = []
+for i in range(3):
+    test_subjects.append(random.randint(0,len(df)-1))
+
+test_input = []
+train_input = []
+
+# determine number of samples
+no_of_actions = 5
+total_files = len(df)
+no_of_samples = int(total_files/no_of_actions)
+for subject in test_subjects:
+    subject_index = 0
+    for i in range(0,no_of_actions):
+        test_input.append(df[subject_index])
+        subject_index = subject_index + no_of_samples
+
+
