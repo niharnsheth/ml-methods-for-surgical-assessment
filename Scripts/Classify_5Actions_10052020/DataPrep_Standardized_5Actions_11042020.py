@@ -188,7 +188,7 @@ for i in range(len(data_folder_list)):
         y_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 1], pos_time_stamps))
         z_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 2], pos_time_stamps))
 
-        # normalize position and orientation values
+        # normalize position
         df = normalize_dataframe_column_custom(pos_x[0], pos_x[1], df, ['X'])
         df = normalize_dataframe_column_custom(pos_y[0], pos_y[1], df, ['Y'])
         df = normalize_dataframe_column_custom(pos_z[0], pos_z[1], df, ['Z'])
@@ -234,10 +234,10 @@ for i in range(len(data_folder_list)):
         # y_vel = cal_vel_for_range(pos_values_array[:,1], pos_time_stamps)
         # z_vel = cal_vel_for_range(pos_values_array[:,2], pos_time_stamps)
 
-        final_features = np.hstack((pos_values_array,np_quaternions_arr))
-        final_features = np.hstack((final_features,np.c_[x_norm_linear_velocity]))
-        final_features = np.hstack((final_features,np.c_[y_norm_linear_velocity]))
-        final_features = np.hstack((final_features,np.c_[z_norm_linear_velocity]))
+        final_features = np.hstack((pos_values_array, np_quaternions_arr))
+        final_features = np.hstack((final_features, np.c_[x_norm_linear_velocity]))
+        final_features = np.hstack((final_features, np.c_[y_norm_linear_velocity]))
+        final_features = np.hstack((final_features, np.c_[z_norm_linear_velocity]))
         final_features = np.hstack((final_features, norm_angular_velocity_quat_arr))
 
 

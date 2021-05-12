@@ -12,7 +12,10 @@ from mpl_toolkits import mplot3d
 # ---- File path to the database files  ---- #
 
 # source folder, change based on RUN options (entire script / parts of scripts)
+source_path = os.getcwd()
+print("source path: " + source_path)
 source_path = os.getcwd()  + '/Data/'
+print("source path altered: " + source_path)
 #source_path = os.getcwd()  + '/../..' +  '/Data/'
 # file paths to orginal data folders
 original_data_folder = ['5 Actions_10032020/OriginalData/ChloraPrep/',
