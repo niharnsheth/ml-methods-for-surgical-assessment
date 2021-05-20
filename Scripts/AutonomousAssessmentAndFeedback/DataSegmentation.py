@@ -16,19 +16,19 @@ import quaternion as qt
 # Select surgery: 0 or 1
 # 0 - Pericardiocentesis
 # 1 - Thoracentesis
-surgery_selected = 1
+surgery_selected = 0
 sliding_window_size = 150
 
 # File path to the database files
-#source_path = os.getcwd() + '/../..' + '/Data/Data_04152021'
+# source_path = os.getcwd() + '/../..' + '/Data/Data_04152021'
 source_path = os.getcwd() + '/Data/Data_04152021'
-#save_to_folder = '/ThresholdFilter'
+# save_to_folder = '/ThresholdFilter'
 
 surgery_name_list = ['/Pericardiocentesis',
                      '/Thoracentesis']
 
 # Get list of all data directories
-#performance_list = os.listdir(source_path + surgery_name_list[surgery_selected] + '/')
+# performance_list = os.listdir(source_path + surgery_name_list[surgery_selected] + '/')
 
 sensor_id_list = ['0.csv', '1.csv', '2.csv', '3.csv']
 
@@ -38,7 +38,7 @@ sensor_id_list = ['0.csv', '1.csv', '2.csv', '3.csv']
 ## ---------------------      Create motion windows       ------------------------ ##
 # Create motion windows and save based on experience level
 
-input_folder = '/AnnotatedData'
+input_folder = '/Annotated'
 save_to_folder = '/SegmentedData'
 
 
@@ -50,10 +50,10 @@ def create_and_save_motion_windows(window_size, df_to_change, window_file_path, 
     for step in steps:#range(len(df_to_change) - no_windows + 1):
         # print('Value of i is: {}'.format(i))
         a = df_to_change.iloc[step:step + window_size, :-2].reset_index(drop=True)
-        a.to_csv(window_file_path + "/Features" + "/" + file_name + "_" + str(step), index=False)
+        a.to_csv(window_file_path + "/Features" + "/" + file_name + "_" + str(step) + ".csv", index=False)
         # a.reset_index(drop=True)
         b = df_to_change.iloc[step + window_size, 13:].reset_index(drop=True)
-        b.to_csv(window_file_path + "/Labels" + "/" + file_name + "_" + str(step), index=False)
+        b.to_csv(window_file_path + "/Labels" + "/" + file_name + "_" + str(step) + ".csv", index=False)
         #local_feature_df.append(a)
         #local_label_df.append(b)
     #return local_feature_df, local_label_df
@@ -91,6 +91,8 @@ for individual_performance in performance_list:
             continue
 
         # Break down data to windows
-        create_and_save_motion_windows(sliding_window_size, df,
-                                       source_path + save_to_folder + "/" + experience_level,
+        create_and_save_motion_windows(sliding_window_size,
+                                       df,
+                                       source_path + save_to_folder + surgery_name_list[surgery_selected]
+                                       + "/" + experience_level,
                                        individual_performance)

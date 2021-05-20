@@ -1,7 +1,7 @@
 # Script annotates and reduces noise of the original surgical data
 
 ## Order of processing
-# Import --- Feature Extraction --- Threshold filtering --- Normalization --- Annotation
+# Import --- Feature Extraction --- Threshold filtering --- Normalization
 
 # --------------------------------------------------------------------------------------------------- #
 ## ---------------------      Import libraries and data       ------------------------ ##
@@ -18,11 +18,13 @@ import quaternion as qt
 # Select surgery: 0 or 1
 # 0 - Pericardiocentesis
 # 1 - Thoracentesis
-surgery_selected = 1
+surgery_selected = 0
 
 # File path to the database files
 #source_path = os.getcwd() + '/../..' + '/Data/Data_04152021'
-source_path = os.getcwd() + '/Data/Data_04152021'
+# source_path = os.getcwd() + '/Data/Data_04152021'
+source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+
 #save_to_folder = '/ThresholdFilter'
 
 surgery_name_list = ['/Pericardiocentesis',
@@ -122,9 +124,12 @@ for individual_performance in performance_list:
 
         # calculate absolute linear velocities
         pos_values_array = df[['X', 'Y', 'Z']].to_numpy()
-        x_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 0], pos_time_stamps))
-        y_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 1], pos_time_stamps))
-        z_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 2], pos_time_stamps))
+        # x_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 0], pos_time_stamps))
+        # y_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 1], pos_time_stamps))
+        # z_linear_velocity = np.absolute(cal_vel_for_range(pos_values_array[:, 2], pos_time_stamps))
+        x_linear_velocity = cal_vel_for_range(pos_values_array[:, 0], pos_time_stamps)
+        y_linear_velocity = cal_vel_for_range(pos_values_array[:, 1], pos_time_stamps)
+        z_linear_velocity = cal_vel_for_range(pos_values_array[:, 2], pos_time_stamps)
 
         # convert euler angles to quaternion
         euler_angles_arr = df[['A', 'B', 'G']].to_numpy()
@@ -137,7 +142,7 @@ for individual_performance in performance_list:
         # calculate the angular velocities
         quat_arr = qt.as_quat_array(np_quaternions_arr)
         ang_velocity_quat_arr = qt.quaternion_time_series.angular_velocity(quat_arr, ori_time_stamps)
-        ang_velocity_quat_arr = np.absolute(ang_velocity_quat_arr)
+        # ang_velocity_quat_arr = np.absolute(ang_velocity_quat_arr)
 
         final_features = np.hstack((pos_values_array,np_quaternions_arr))
         final_features = np.hstack((final_features,np.c_[x_linear_velocity]))
@@ -145,8 +150,10 @@ for individual_performance in performance_list:
         final_features = np.hstack((final_features,np.c_[z_linear_velocity]))
         final_features = np.hstack((final_features, ang_velocity_quat_arr))
 
+        final_features = np.hstack((final_features,np.c_[pos_time_stamps]))
+        final_features = np.hstack((final_features, np.c_[ori_time_stamps]))
         header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
-                       "Vy", "Vz", "VQx", "VQy", "VQz"]
+                       "Vy", "Vz", "VQx", "VQy", "VQz", "Pt", "Ot"]
 
         final_df = pd.DataFrame(final_features)
         final_df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
@@ -157,6 +164,7 @@ for individual_performance in performance_list:
 # --------------------------------------------------------------------------------------------------- #
 ## ---------------------      Filter data based on thresholds       ------------------------ ##
 
+# input_folder = '/ExtractedFeatures'
 input_folder = '/ExtractedFeatures'
 save_to_folder = '/ThresholdFilter'
 
@@ -239,19 +247,25 @@ save_to_folder = '/Normalization'
 performance_list = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
 
 
-# min and max values for each feature
-# pos_x = (-9, 11)  # ideal +-28
-pos_x = (-16, 11)
-pos_y = (-8, 20)  # ideal +-30
-pos_z = (-42, -15)  # ideal +20 +60
+# # min and max values for each feature
+# # pos_x = (-9, 11)  # ideal +-28
+# pos_x = (-16, 11)
+# pos_y = (-8, 20)  # ideal +-30
+# pos_z = (-42, -15)  # ideal +20 +60
 
-vel_x = (0, 65)
-vel_y = (0,70)
-vel_z = (0,90)
+# min and max values for each features
+# values obtained from plots. Plots stored in SurgicalData/Graph
+pos_x = (-30, 70)
+pos_y = (45,90)
+pos_z = (-260,-160)
 
-ang_vel_x = (0,150)
-ang_vel_y = (0,150)
-ang_vel_z = (0,190)
+vel_x = (-250, 250)
+vel_y = (-250,200)
+vel_z = (-300,300)
+
+ang_vel_x = (-85,85)
+ang_vel_y = (-65,60)
+ang_vel_z = (-60,60)
 
 
 #  input msx and min to normalize data
@@ -348,7 +362,7 @@ for individual_performance in performance_list:
         df = normalize_column(df, ['VQz'], mode=1)
 
         header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
-                       "Vy", "Vz", "VQx", "VQy", "VQz"]
+                       "Vy", "Vz", "VQx", "VQy", "VQz", "Pt", "Ot"]
 
         df = pd.DataFrame(df)
         df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
@@ -356,7 +370,7 @@ for individual_performance in performance_list:
 
 
 # --------------------------------------------------------------------------------------------------------- #
-## ---------------------      Annotate the data       ------------------------ ##
+## ---------------------      Annotate the data based on experience    ------------------------ ##
 
 
 input_folder = '/Normalization'
@@ -387,6 +401,10 @@ for individual_performance in performance_list:
     # Create folder to save all the sensor files
     os.mkdir(source_path + save_to_folder + surgery_name_list[surgery_selected] +
              '/' + individual_performance)
+
+    # Get experience level
+    split_list = individual_performance.split('_')
+    experience_level = split_list[1]
 
     for data_sample in sensor_data:
         try:
