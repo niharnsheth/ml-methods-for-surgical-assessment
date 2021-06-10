@@ -45,31 +45,6 @@ sliding_window = 100
 batch_size = 300
 
 
-## ---   Fetch and split data into train and test   --- #
-
-
-#
-# test_list = []
-# test_subjects = []
-# train_list = []
-# # randomly select subject for testing network
-# for i in range(0, 2):
-#     x = random.randint(1, int(len(csv_list) - 1))
-#     if x < 10:
-#         x = '0' + str(x)
-#         test_subjects.append(x)
-#     else:
-#         test_subjects.append(str(x))
-# # split data into test and train set
-# for i in test_subjects:
-#     for f in csv_list:
-#         if fnmatch.fnmatch(f, '*' + i + '.csv'):
-#             test_list.append(f)
-#         else:
-#             train_list.append(f)
-#
-
-
 ##  ---   Make motion windows   --- #
 
 # return an input and output data frame with motion windows
@@ -112,12 +87,10 @@ print(' ------------- Training   ------------')
 total_runs = 5
 # Create folder to save all the plots
 os.mkdir(source_path + save_to_folder + save_model + '/' + 'Graphs')
-
 # train for all surgical procedures
 for surgery_selected in range(0,len(surgery_name_list)):
     # train for each surgical task with procedure
     surgical_tasks = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
-
     for action_selected in surgical_tasks:
         # get data of surgical tasks
         csv_list = [f for f in os.listdir(source_path + input_folder +
@@ -161,27 +134,29 @@ for surgery_selected in range(0,len(surgery_name_list)):
         # display summary of training
         model.summary()
 
+        # plot losses
         plt.plot(history.history['loss'], label='loss')
         plt.plot(history.history['val_loss'], label='val_loss')
         plt.title('Model loss - ' + surgery_name_list[surgery_selected] + ' - ' + str(action_selected))
         plt.ylabel('loss value')
         plt.xlabel('epoch')
         plt.legend(loc="upper left")
-        plt.savefig(source_path + save_to_folder + save_model + '/' + 'Graphs' + '/' +
-                    surgery_name_list[surgery_selected] + '_' + str(action_selected) + '_' + 'loss' + '.png',
-                    dpi=300, bbox_inches='tight')
         plt.show()
+        plt.savefig(source_path + save_to_folder + save_model + '/' + 'Graphs' + '/' +
+                    surgery_name_list[surgery_selected][1:] + '_' + str(action_selected) + '_' + 'loss' + '.png',
+                    dpi=300, bbox_inches='tight')
 
+        # plot accuracies
         plt.plot(history.history['accuracy'], label='acc')
         plt.plot(history.history['val_accuracy'], label='val_acc')
-        plt.title('Model accuracy - ' + surgery_name_list[surgery_selected] + ' - ' + str(action_selected))
+        plt.title('Model accuracy' + surgery_name_list[surgery_selected] + ' - ' + str(action_selected))
         plt.ylabel('accuracy value')
         plt.xlabel('epoch')
         plt.legend(loc="upper left")
-        plt.savefig(source_path + save_to_folder + save_model + '/' + 'Graphs' + '/' +
-                    surgery_name_list[surgery_selected] + '_' + str(action_selected) + '_' + 'acc' + '.png',
-                    dpi=300, bbox_inches='tight')
         plt.show()
+        plt.savefig(source_path + save_to_folder + save_model + '/' + 'Graphs' + '/' +
+                    surgery_name_list[surgery_selected][1:] + '_' + str(action_selected) + '_' + 'acc' + '.png',
+                    dpi=300, bbox_inches='tight')
 
         # test the model
         model.evaluate(x_test, y_test, batch_size=n_batches, verbose=2)

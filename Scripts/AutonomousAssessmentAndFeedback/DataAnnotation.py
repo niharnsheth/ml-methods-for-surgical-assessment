@@ -21,17 +21,13 @@ import quaternion as qt
 surgery_selected = 0
 
 # File path to the database files
-#source_path = os.getcwd() + '/../..' + '/Data/Data_04152021'
-# source_path = os.getcwd() + '/Data/Data_04152021'
-# source_path = os.getcwd() + "/../../Nihar/ML-data/SurgicalData"
-source_path = r'D:/Documents/Nihar/ML-data/SurgicalData'
-
-
+source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+test_dir = os.listdir(source_path)
 surgery_name_list = ['/Pericardiocentesis',
                      '/Thoracentesis']
 
 # Get list of all data directories
-#performance_list = os.listdir(source_path + surgery_name_list[surgery_selected] + '/')
+# performance_list = os.listdir(source_path + surgery_name_list[surgery_selected] + '/')
 
 sensor_id_list = ['0.csv', '1.csv', '2.csv', '3.csv']
 
@@ -52,7 +48,8 @@ input_folder = '/Normalization'
 save_to_folder = '/Annotated'
 
 # Get list of all data directories
-performance_list = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
+test_file_path = source_path + input_folder + surgery_name_list[surgery_selected] + "/"
+performance_list = os.listdir(test_file_path)
 
 
 # Create labels
@@ -98,6 +95,8 @@ for individual_performance in performance_list:
         except pd.errors.EmptyDataError:
             continue
 
+        # drop time columns
+        df = df.drop(['Pt','Ot'], axis=1)
         # create a df of labels
         label_df = create_label_df(df, 3, exp_index)
         # get the sensor Id to store the data based on action performed
@@ -113,5 +112,5 @@ for individual_performance in performance_list:
 
         df.to_csv(source_path + save_to_folder +
                   surgery_name_list[surgery_selected] +
-                  '/' + split_file_name[0] + '/' + individual_performance,
+                  '/' + split_file_name[0] + '/' + individual_performance + '.csv',
                   index=False, header=header_list)

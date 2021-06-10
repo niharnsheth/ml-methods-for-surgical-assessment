@@ -18,7 +18,7 @@ import quaternion as qt
 # Select surgery: 0 or 1
 # 0 - Pericardiocentesis
 # 1 - Thoracentesis
-surgery_selected = 0
+surgery_selected = 1
 
 # File path to the database files
 #source_path = os.getcwd() + '/../..' + '/Data/Data_04152021'
@@ -164,8 +164,8 @@ for individual_performance in performance_list:
 # --------------------------------------------------------------------------------------------------- #
 ## ---------------------      Filter data based on thresholds       ------------------------ ##
 
-# input_folder = '/ExtractedFeatures'
 input_folder = '/ExtractedFeatures'
+#input_folder = '/OriginalData'
 save_to_folder = '/ThresholdFilter'
 
 # Get list of all data directories
