@@ -10,26 +10,27 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import Flatten
+from tensorflow.keras.layers import Conv1D
+from tensorflow.keras.layers import MaxPool1D
 
 import matplotlib.pyplot as plt
 
-# File path to the database files
+# File path to + the database files
 source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
 #source_path = os.getcwd() + "/../../../../SurgicalData"
 surgery_selected = 1
 #action_selected = 2
 
-surgery_name_list = ['/Pericardiocentesis',
-                     '/Thoracentesis']
+surgery_name_list = ['/Pericardiocentesis', '/Thoracentesis']
 
 data_folder = '5 Actions_10032020/PreparedData/'
 
 input_folder = '/Annotated'
-save_model = '/06092021'
-save_to_folder = '/Results/LSTM/AutoAnnotated'
+save_model = '/06112021_1'
+save_to_folder = '/Results/1D_CNN/AutoAnnotated'
 
 
 ## 1 ---  Define hyper parameters  ---  #
@@ -39,7 +40,7 @@ no_sensors = 1
 features_per_sensor = 13
 n_features = no_sensors * features_per_sensor
 n_classes = 3 #number of outputs for classification
-epochs = 15
+epochs = 25
 
 sliding_window = 100
 batch_size = 300
@@ -66,15 +67,22 @@ learning_rate = 0.001
 n_units = 150 # number of lstm cells
 ## --- tf.Keras implementation of LSTM layers --- #
 model = Sequential()
-opt = tf.keras.optimizers.SGD(lr=learning_rate, momentum=0.9, decay=1e-2/epochs)
-#model.add(LSTM(n_units, input_shape=(sliding_window, n_features),return_sequences=True, name='lstm_layer_1'))
-#model.add(LSTM(n_units, name='lstm_layer_2'))
-#model.add(Dropout(0.5))
-model.add(LSTM(n_units, input_shape=(sliding_window, n_features), name='lstm_layer_1'))
-model.add(Dense(n_units/2, activation='relu', name='projeciton_layer'))
-model.add(Dense(n_classes, activation='softmax', name='output_layer'))
-model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
-#model.compile(loss='mse', optimizer=opt, metrics=['accuracy'])
+model.add(Conv1D(filters=38, kernel_size=2, activation='relu', input_shape=(sliding_window,n_features)))
+model.add(MaxPool1D(pool_size=2, strides=2))
+model.add(Dropout(0.5))
+model.add(Conv1D(filters=76, kernel_size=2, activation='relu'))
+model.add(MaxPool1D(pool_size=2, strides=2))
+model.add(Dropout(0.5))
+model.add(Conv1D(filters=156, kernel_size=2, activation='relu'))
+model.add(MaxPool1D(pool_size=2, strides=2))
+model.add(Dropout(0.5))
+model.add(Flatten())
+model.add(Dropout(0.8))
+model.add(Dropout(0.8))
+model.add(Dense(n_classes, activation='softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# opt = tf.keras.optimizers.Adam(lr=learning_rate, momentum=0.9, decay=1e-2/epochs)
+
 
 
 # -----------------   1D CNN   ----------------------------------------- #
@@ -141,10 +149,10 @@ for surgery_selected in range(0,len(surgery_name_list)):
         plt.ylabel('loss value')
         plt.xlabel('epoch')
         plt.legend(loc="upper left")
-        plt.show()
         plt.savefig(source_path + save_to_folder + save_model + '/' + 'Graphs' + '/' +
                     surgery_name_list[surgery_selected][1:] + '_' + str(action_selected) + '_' + 'loss' + '.png',
                     dpi=300, bbox_inches='tight')
+        plt.show()
 
         # plot accuracies
         plt.plot(history.history['accuracy'], label='acc')
@@ -153,10 +161,10 @@ for surgery_selected in range(0,len(surgery_name_list)):
         plt.ylabel('accuracy value')
         plt.xlabel('epoch')
         plt.legend(loc="upper left")
-        plt.show()
         plt.savefig(source_path + save_to_folder + save_model + '/' + 'Graphs' + '/' +
                     surgery_name_list[surgery_selected][1:] + '_' + str(action_selected) + '_' + 'acc' + '.png',
                     dpi=300, bbox_inches='tight')
+        plt.show()
 
         # test the model
         model.evaluate(x_test, y_test, batch_size=n_batches, verbose=2)
