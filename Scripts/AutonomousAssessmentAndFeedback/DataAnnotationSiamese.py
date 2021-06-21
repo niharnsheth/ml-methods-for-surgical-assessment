@@ -21,7 +21,7 @@ import quaternion as qt
 surgery_selected = 1
 
 # File path to the database files
-#source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+# source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
 source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData/TestData' # only to prep test data
 test_dir = os.listdir(source_path)
 surgery_name_list = ['/Pericardiocentesis',
@@ -41,7 +41,7 @@ sensor_id_list = ['0.csv', '1.csv', '2.csv', '3.csv']
 
 
 input_folder = '/Normalization'
-save_to_folder = '/Annotated'
+save_to_folder = '/AnnotatedForSiamese'
 
 # Get list of all data directories
 test_file_path = source_path + input_folder + surgery_name_list[surgery_selected] + "/"
@@ -49,22 +49,26 @@ performance_list = os.listdir(test_file_path)
 
 
 # Create labels
-def create_label_df(my_df, number_of_actions, action_index):
+def create_label_df(my_df, number_of_columns, action_index):
     # Create one-hot vector labels df
     num_of_rows = len(my_df.index)
-    labels_arr = np.zeros((num_of_rows, number_of_actions))
-    labels_arr[:, action_index] = 1
-    return labels_arr
+    print("Number of rows in dataframe: " + str(num_of_rows))
+    labels_arr = np.zeros((num_of_rows, number_of_columns))
+    if action_index == -1:
+        return labels_arr
+    else:
+        labels_arr[:, 0] = 1
+        return labels_arr
 
 
 # Return index for annotation
 def check_experience_level(experience):
     if fnmatch.fnmatch(experience, 'Resident'):
-        return 0
+        return -1
     elif fnmatch.fnmatch(experience, 'Fellow'):
-        return 1
+        return -1
     else:
-        return 2
+        return 1
 
 
 # update data
@@ -80,7 +84,7 @@ for individual_performance in performance_list:
     # Get experience level
     split_list = individual_performance.split('_')
     experience_level = split_list[1]
-    exp_index = check_experience_level(experience_level)
+    output_value = check_experience_level(experience_level)
 
     for data_sample in sensor_data:
         try:
@@ -94,14 +98,14 @@ for individual_performance in performance_list:
         # drop time columns
         df = df.drop(['Pt','Ot'], axis=1)
         # create a df of labels
-        label_df = create_label_df(df, 3, exp_index)
+        label_df = create_label_df(df, 1, output_value)
         # get the sensor Id to store the data based on action performed
         split_file_name = data_sample.split('.')
 
         # update header list
         header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz",
                        "Vx", "Vy", "Vz", "VQx", "VQy", "VQz",
-                       "Resident", "Fellow", "Expert"]
+                       "Similarity"]
 
         df = np.hstack((df, label_df))
         df = pd.DataFrame(df)

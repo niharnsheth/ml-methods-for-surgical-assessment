@@ -23,8 +23,8 @@ surgery_selected = 1
 # File path to the database files
 #source_path = os.getcwd() + '/../..' + '/Data/Data_04152021'
 # source_path = os.getcwd() + '/Data/Data_04152021'
-source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
-
+#source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData/TestData' # only to prep test data
 #save_to_folder = '/ThresholdFilter'
 
 surgery_name_list = ['/Pericardiocentesis',
@@ -34,14 +34,6 @@ surgery_name_list = ['/Pericardiocentesis',
 #performance_list = os.listdir(source_path + surgery_name_list[surgery_selected] + '/')
 
 sensor_id_list = ['0.csv', '1.csv', '2.csv', '3.csv']
-
-data_folder_list = ['5 Actions_10032020/OriginalData/ChloraPrep/',
-                    '5 Actions_10032020/OriginalData/NeedleInsertion/',
-                    '5 Actions_10032020/OriginalData/Dilator/',
-                    '5 Actions_10032020/OriginalData/Cut/',
-                    '5 Actions_10032020/OriginalData/Tracing/']
-
-# csv_list_1 = [f for f in os.listdir(source_path + surgery_name_list[0] ) if fnmatch.fnmatch(f, '*.csv')]
 
 # --------------------------------------------------------------------------------------------------------- #
 ## ---------------------      Extract features       ------------------------ ##
@@ -368,78 +360,78 @@ for individual_performance in performance_list:
         df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
                   '/' + individual_performance + '/' + data_sample, index=False, header=header_list)
 
-
-# --------------------------------------------------------------------------------------------------------- #
-## ---------------------      Annotate the data based on experience    ------------------------ ##
-
-
-input_folder = '/Normalization'
-save_to_folder = '/Annotated'
-
-# Get list of all data directories
-performance_list = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
-
-# List of actions
-actions_pericardiocentesis = []
-
-
-# Create labels
-def create_label_df(my_df, number_of_actions, action_index):
-    # Create one-hot vector labels df
-    num_of_rows = len(my_df.index)
-    labels_arr = np.zeros((num_of_rows, number_of_actions))
-    labels_arr[:, action_index] = 1
-    return labels_arr
-
-
-# update data
-for individual_performance in performance_list:
-    sensor_data = [f for f in os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] +
-                                         '/' + individual_performance + '/')
-                   if fnmatch.fnmatch(f, '*.csv')]
-
-    # Create folder to save all the sensor files
-    os.mkdir(source_path + save_to_folder + surgery_name_list[surgery_selected] +
-             '/' + individual_performance)
-
-    # Get experience level
-    split_list = individual_performance.split('_')
-    experience_level = split_list[1]
-
-    for data_sample in sensor_data:
-        try:
-            # read sensor data csv
-            df = pd.read_csv(source_path + input_folder + surgery_name_list[surgery_selected] + '/'
-                             + individual_performance + '/' + data_sample)
-
-        except pd.errors.EmptyDataError:
-            continue
-
-        # check for the surgery selected
-        if surgery_selected == 0:
-            if fnmatch.fnmatch(data_sample, '0.csv'):
-                label_df = create_label_df(df, 2, 0)
-            else:
-                label_df = create_label_df(df, 2, 1)
-
-            header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
-                           "Vy", "Vz", "VQx", "VQy", "VQz", "Chloraprep", "NeedleInsertion"]
-
-        else:
-            if fnmatch.fnmatch(data_sample, '0.csv'):
-                label_df = create_label_df(df, 4, 0)
-            elif fnmatch.fnmatch(data_sample, '1.csv'):
-                label_df = create_label_df(df, 4, 1)
-            elif fnmatch.fnmatch(data_sample, '2.csv'):
-                label_df = create_label_df(df, 4, 2)
-            else:
-                label_df = create_label_df(df, 4, 3)
-
-            header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
-                           "Vy", "Vz", "VQx", "VQy", "VQz",
-                           "Chloraprep", "Incision", "TrocarInsertion", "Anesthetization"]
-
-        df = np.hstack((df, label_df))
-        df = pd.DataFrame(df)
-        df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
-                  '/' + individual_performance + '/' + data_sample, index=False, header=header_list)
+#
+# # --------------------------------------------------------------------------------------------------------- #
+# ## ---------------------      Annotate the data based on experience    ------------------------ ##
+#
+#
+# input_folder = '/Normalization'
+# save_to_folder = '/Annotated'
+#
+# # Get list of all data directories
+# performance_list = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
+#
+# # List of actions
+# actions_pericardiocentesis = []
+#
+#
+# # Create labels
+# def create_label_df(my_df, number_of_actions, action_index):
+#     # Create one-hot vector labels df
+#     num_of_rows = len(my_df.index)
+#     labels_arr = np.zeros((num_of_rows, number_of_actions))
+#     labels_arr[:, action_index] = 1
+#     return labels_arr
+#
+#
+# # update data
+# for individual_performance in performance_list:
+#     sensor_data = [f for f in os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] +
+#                                          '/' + individual_performance + '/')
+#                    if fnmatch.fnmatch(f, '*.csv')]
+#
+#     # Create folder to save all the sensor files
+#     os.mkdir(source_path + save_to_folder + surgery_name_list[surgery_selected] +
+#              '/' + individual_performance)
+#
+#     # Get experience level
+#     split_list = individual_performance.split('_')
+#     experience_level = split_list[1]
+#
+#     for data_sample in sensor_data:
+#         try:
+#             # read sensor data csv
+#             df = pd.read_csv(source_path + input_folder + surgery_name_list[surgery_selected] + '/'
+#                              + individual_performance + '/' + data_sample)
+#
+#         except pd.errors.EmptyDataError:
+#             continue
+#
+#         # check for the surgery selected
+#         if surgery_selected == 0:
+#             if fnmatch.fnmatch(data_sample, '0.csv'):
+#                 label_df = create_label_df(df, 2, 0)
+#             else:
+#                 label_df = create_label_df(df, 2, 1)
+#
+#             header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
+#                            "Vy", "Vz", "VQx", "VQy", "VQz", "Chloraprep", "NeedleInsertion"]
+#
+#         else:
+#             if fnmatch.fnmatch(data_sample, '0.csv'):
+#                 label_df = create_label_df(df, 4, 0)
+#             elif fnmatch.fnmatch(data_sample, '1.csv'):
+#                 label_df = create_label_df(df, 4, 1)
+#             elif fnmatch.fnmatch(data_sample, '2.csv'):
+#                 label_df = create_label_df(df, 4, 2)
+#             else:
+#                 label_df = create_label_df(df, 4, 3)
+#
+#             header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
+#                            "Vy", "Vz", "VQx", "VQy", "VQz",
+#                            "Chloraprep", "Incision", "TrocarInsertion", "Anesthetization"]
+#
+#         df = np.hstack((df, label_df))
+#         df = pd.DataFrame(df)
+#         df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
+#                   '/' + individual_performance + '/' + data_sample, index=False, header=header_list)

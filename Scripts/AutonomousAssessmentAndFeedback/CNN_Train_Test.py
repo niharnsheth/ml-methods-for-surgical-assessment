@@ -62,7 +62,7 @@ def create_motion_windows(no_windows, df_to_change):
         local_label_df.append(b)
     return local_feature_df, local_label_df
 
-# -----------------   LSTM ----------------------------------------- #
+# -----------------   CNN 1D ----------------------------------------- #
 learning_rate = 0.001
 n_units = 150 # number of lstm cells
 ## --- tf.Keras implementation of LSTM layers --- #
