@@ -14,6 +14,7 @@ from tensorflow.keras.layers import Input, Dense, Dropout, Flatten, Conv1D, MaxP
 # from tensorflow.keras.regularizers import l2
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import SGD, Adam
+from tensorflow.keras.utils import plot_model
 import matplotlib.pyplot as plt
 
 
@@ -29,7 +30,7 @@ surgery_name_list = ['/Pericardiocentesis',
 data_folder = '5 Actions_10032020/PreparedData/'
 
 input_folder = '/AnnotatedForSiamese'
-save_model = '/06202021'
+save_model = '/06222021'
 save_to_folder = '/Results/Siamese/AutoAnnotated'
 
 ## 1 ---  Define hyper parameters  ---  #
@@ -96,20 +97,23 @@ model.add(Dense(468, activation='sigmoid'))
 encoded_left = model(left_input_performance)
 encoded_right = model(right_input_performance)
 # Getting the L1 Distance between the 2 encodings
-L1_layer = Lambda(lambda tensor:K.abs(tensor[0] - tensor[1]))
+L1_layer = Lambda(lambda tensor: K.abs(tensor[0] - tensor[1]))
 
 # Add the distance function to the network
 L1_distance = L1_layer([encoded_left, encoded_right])
 
-prediction = Dense(1,activation='sigmoid')(L1_distance)
-siamese_net = Model(inputs=[left_input_performance,right_input_performance], outputs=prediction)
+prediction = Dense(1, activation='sigmoid')(L1_distance)
+siamese_net = Model(inputs=[left_input_performance, right_input_performance], outputs=prediction)
 
 optimizer = Adam(0.001, decay=2.5e-4)
 
-siamese_net.compile(loss="binary_crossentropy",optimizer=optimizer,metrics=['accuracy'])
+siamese_net.summary()
+siamese_net.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=['accuracy'])
 
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 # opt = tf.keras.optimizers.Adam(lr=learning_rate, momentum=0.9, decay=1e-2/epochs)
+
+plot_model(siamese_net, show_shapes=True, show_layer_names=True)
 
 ## --- Training process  --- ##
 print(' ------------- Training   ------------')
@@ -118,9 +122,11 @@ total_runs = 5
 os.mkdir(source_path + save_to_folder + save_model + '/' + 'Graphs')
 
 # train for all surgical procedures
+# for surgery_selected in surgery_name_list[1]`:
 for surgery_selected in range(0, len(surgery_name_list)):
     # train for each surgical task with procedure
     surgical_tasks = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
+    # for action_selected in surgical_tasks[0]:
     for action_selected in surgical_tasks:
         csv_list = [f for f in os.listdir(source_path + input_folder +
                                           surgery_name_list[surgery_selected] + '/' +
@@ -221,11 +227,11 @@ for surgery_selected in range(0, len(surgery_name_list)):
         test_left, test_right, test_targets = list(zip(*test_list))
 
         # reshape to input for model
-        left_input = np.reshape(left_input,(len(left_input),sliding_window,n_features))
-        right_input = np.reshape(right_input,(len(right_input),sliding_window,n_features))
+        left_input = np.reshape(left_input, (len(left_input), sliding_window, n_features))
+        right_input = np.reshape(right_input, (len(right_input), sliding_window, n_features))
         targets = np.array(targets)
-        test_left = np.reshape(test_left,(len(test_left),sliding_window,n_features))
-        test_right = np.reshape(test_right,(len(test_right),sliding_window,n_features))
+        test_left = np.reshape(test_left, (len(test_left), sliding_window, n_features))
+        test_right = np.reshape(test_right, (len(test_right), sliding_window, n_features))
         test_targets = np.array(test_targets)
 
         siamese_net.summary()
@@ -239,9 +245,9 @@ for surgery_selected in range(0, len(surgery_name_list)):
         os.mkdir(source_path + save_to_folder + save_model + '/' +
                  surgery_name_list[surgery_selected] + '_' + str(action_selected))
         # save the trained model
-        model.save(source_path + save_to_folder + save_model +
-                   '/' + surgery_name_list[surgery_selected] +
-                   '_' + str(action_selected) + '/', save_format='tf')
+        siamese_net.save(source_path + save_to_folder + save_model +
+                         '/' + surgery_name_list[surgery_selected] +
+                         '_' + str(action_selected) + '/', save_format='tf')
 
         plt.plot(history.history['loss'], label='loss')
         plt.plot(history.history['val_loss'], label='val_loss')
@@ -264,5 +270,6 @@ for surgery_selected in range(0, len(surgery_name_list)):
                     surgery_name_list[surgery_selected] + '_' + str(action_selected) + '_' + 'acc' + '.png',
                     dpi=300, bbox_inches='tight')
         plt.show()
+
 
 
