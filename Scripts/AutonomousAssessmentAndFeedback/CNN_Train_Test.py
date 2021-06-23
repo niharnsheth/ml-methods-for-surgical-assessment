@@ -19,9 +19,10 @@ from tensorflow.keras.layers import MaxPool1D
 import matplotlib.pyplot as plt
 
 # File path to + the database files
-source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+#source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+source_path = os.getcwd() + '/../../../../Nihar/ML-data/SurgicalData'
 #source_path = os.getcwd() + "/../../../../SurgicalData"
-surgery_selected = 1
+surgery_selected = 0
 #action_selected = 2
 
 surgery_name_list = ['/Pericardiocentesis', '/Thoracentesis']
@@ -29,7 +30,7 @@ surgery_name_list = ['/Pericardiocentesis', '/Thoracentesis']
 data_folder = '5 Actions_10032020/PreparedData/'
 
 input_folder = '/Annotated'
-save_model = '/06112021_1'
+save_model = '/06222021'
 save_to_folder = '/Results/1D_CNN/AutoAnnotated'
 
 
@@ -40,7 +41,7 @@ no_sensors = 1
 features_per_sensor = 13
 n_features = no_sensors * features_per_sensor
 n_classes = 3 #number of outputs for classification
-epochs = 25
+epochs = 30
 
 sliding_window = 100
 batch_size = 300

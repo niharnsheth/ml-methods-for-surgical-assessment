@@ -16,7 +16,7 @@ from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
 
 
-surgery_selected = 1
+surgery_selected = 1 # for surgery_name_list and anchor_performance_name
 # task_model_selected = 2
 
 sliding_window = 150
@@ -28,7 +28,7 @@ n_features = 13
 # source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
 source_path = os.getcwd() + "/../../../../Nihar/ML-data/SurgicalData"
 anchor_performance_path = '/AnnotatedForSiamese'
-anchor_performance_name = '1_Expert_332021_25730_PM.csv'
+anchor_performance_name = ['1_Expert_412021_44525_PM.csv', '1_Expert_332021_25730_PM.csv']
 
 test_data_path = '/TestData/AnnotatedForSiamese'
 surgery_name_list = ['/Pericardiocentesis', '/Thoracentesis']
@@ -73,7 +73,8 @@ for surgical_task in surgical_tasks_list:
     # get the anchor performance to compare the testing data
     anchor_performance_df = pd.read_csv(source_path + anchor_performance_path +
                                         surgery_name_list[surgery_selected] + '/' +
-                                        str(surgical_task) + '/' + anchor_performance_name)
+                                        str(surgical_task) + '/' +
+                                        anchor_performance_name[surgery_selected])
 
     anchor_features, anchor_label = create_motion_windows(sliding_window,
                                                           anchor_performance_df,
@@ -108,18 +109,18 @@ for surgical_task in surgical_tasks_list:
         # prediction = loaded_model.predict(anchor_features, feature_list)
         # print(prediction * 100)
         # print("----------------------------------------------------------------------------")
-
         # final_feature_list_pairs, final_label_list_pairs = []
-        for i in range(len(anchor_features)):
-            for j in range(len(feature_list)):
-
-                input_left = anchor_features[i]
+        for i in range(len(feature_list)):
+            predictions = []
+            for j in range(len(anchor_features)):
+                input_left = anchor_features[j]
                 input_left = np.reshape(input_left, (1, sliding_window, n_features))
-                input_right = feature_list[j]
+                input_right = feature_list[i]
                 input_right = np.reshape(input_right, (1, sliding_window, n_features))
                 prediction = loaded_model.predict([input_left, input_right])
+                # predictions.append(prediction)
                 print(prediction * 100)
-                print("----------------------------------------------------------------------------")
+            print("----------------------------------------------------------------------------")
 
 
 
