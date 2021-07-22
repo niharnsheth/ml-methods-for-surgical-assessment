@@ -14,19 +14,18 @@ import sqlite3
 import pandas as pd
 import numpy as np
 import quaternion as qt
+import time
 
 # Select surgery: 0 or 1
 # 0 - Pericardiocentesis
 # 1 - Thoracentesis
-surgery_selected = 1
+surgery_selected = 0
 
 # File path to the database files
-#source_path = os.getcwd() + '/../..' + '/Data/Data_04152021'
-# source_path = os.getcwd() + '/Data/Data_04152021'
-#source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+# source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
 source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData/TestData' # only to prep test data
-#save_to_folder = '/ThresholdFilter'
-
+# source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData/ManuallyCleaned_06262021'
+# source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData/Manually_Cleaned_And_Annotated_06272021'
 surgery_name_list = ['/Pericardiocentesis',
                      '/Thoracentesis']
 
@@ -131,8 +130,10 @@ for individual_performance in performance_list:
                                                              euler_angles_arr[row, 1],
                                                              euler_angles_arr[row, 2])
 
+        print("shape of quaternion array is: " + str(np_quaternions_arr.shape))
         # calculate the angular velocities
         quat_arr = qt.as_quat_array(np_quaternions_arr)
+        print('Shape of converted quaternion is: ' + str(quat_arr.shape))
         ang_velocity_quat_arr = qt.quaternion_time_series.angular_velocity(quat_arr, ori_time_stamps)
         # ang_velocity_quat_arr = np.absolute(ang_velocity_quat_arr)
 
@@ -166,10 +167,12 @@ performance_list = os.listdir(source_path + input_folder + surgery_name_list[sur
 # Box dimensions
 # 0 - pericardiocentesis   1 - thoracentesis
 box_dimensions = [[200, 200, 200],
-                 [200, 200, 200]]
+                  [200, 200, 200]]
 box_positions = [[11.5, 58, -222],
-                 [-2, 84.5, -220]]
+                 [10.5, 99, -244]]
 
+# old box position for thoracentesis
+# [-2, 84.5, -220]
 
 # variables
 bounding_box_dimension = box_dimensions[surgery_selected]
@@ -231,33 +234,38 @@ for individual_performance in performance_list:
 # --------------------------------------------------------------------------------------------------------- #
 ## ---------------------      Normalize the data       ------------------------ ##
 
-
-input_folder = '/ThresholdFilter'
-save_to_folder = '/Normalization'
+# input_folder = '/ManuallyAnnotatedForSiamese'
+input_folder = '/ManuallyAnnotated'
+# save_to_folder = '/TrainingDataForComparison'
+save_to_folder = '/TrainingDataForClassification'
+# save_to_folder = '/TestingDataForComparison'
+# save_to_folder = '/TestingDataForClassification'
 
 # Get list of all data directories
 performance_list = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
 
-
-# # min and max values for each feature
-# # pos_x = (-9, 11)  # ideal +-28
-# pos_x = (-16, 11)
-# pos_y = (-8, 20)  # ideal +-30
-# pos_z = (-42, -15)  # ideal +20 +60
-
 # min and max values for each features
 # values obtained from plots. Plots stored in SurgicalData/Graph
-pos_x = (-30, 70)
-pos_y = (45,90)
-pos_z = (-260,-160)
+# norm_threshold_peri = [Surgical action[X(min,max), Y.....]]
+norm_thresholds_peri = [[(-25,75), (50,150), (-250,-160),
+                        (-300,300),(-250,250), (-250,250),
+                        (-75,75), (-75,75), (-75,75)],
+                        [(0,50), (30,100), (-235,200),
+                        (-100,80), (-90,50), (-70,90),
+                        (-30,30),(-25,25), (-30,30)]]
 
-vel_x = (-250, 250)
-vel_y = (-250,200)
-vel_z = (-300,300)
-
-ang_vel_x = (-85,85)
-ang_vel_y = (-65,60)
-ang_vel_z = (-60,60)
+norm_thresholds_thor = [[(-20,70),(80,135),(-260,-170),
+                         (-200,200), (-150,150), (-200,200),
+                         (-75,75), (-75,75), (-75,75)],
+                        [(35,110),(132.5,200), (-317.5,-180),
+                         (-150,150), (-90,100), (-100,100),
+                         (-75,75), (-75,75), (-75,75)],
+                        [(30,115), (70,185), (-325,-220),
+                         (-90,90), (-75,75), (-90,90),
+                         (-75,75), (-60,60), (-60,60)],
+                        [(-35,100), (80,170), (-312.5, -165),
+                         (-100,100), (-75,75), (-100,100),
+                         (-100,100), (-100,100), (-100,100)]]
 
 
 #  input msx and min to normalize data
@@ -286,6 +294,15 @@ def normalize_input(x, x_min, x_max):
         return (x - x_min) / (x_max - x_min)
 
 
+def normalize_input_1(x,x_min,x_max):
+    if x >= x_max:
+        return 1
+    elif x <= x_min:
+        return 0
+    else:
+        return 2 * ((x - x_min) / (x_max - x_min)) - 1
+
+
 def scale_input(value, scale_value):
     if value > 0:
         return scale_value - value
@@ -294,23 +311,23 @@ def scale_input(value, scale_value):
 
 
 # use max and min values in sequence to normalize data
-def normalize_column(input_df, feature_name, mode):
+def normalize_column(input_df, feature_name, mode, min_value, max_value):
     df_copy = input_df.copy()
 
     for feature in feature_name:
-        max_value = input_df[feature].max()
-        min_value = input_df[feature].min()
+        # max_value = input_df[feature].max()
+        # min_value = input_df[feature].min()
         if max_value == min_value:
             print("Error: Cannot normalize when max and min values are equal")
             return df_copy
-        if mode == 0:
-            df_copy[feature] = (input_df[feature] - min_value) / (max_value - min_value)
-        if mode == 1:
-            df_copy[feature] = 2 * ((input_df[feature] - min_value) / (max_value - min_value)) - 1
+        elif mode == 0:
+            df_copy[feature] = df_copy[feature].map(lambda a: normalize_input(a, min_value, max_value))
+        elif mode == 1:
+            df_copy[feature] = df_copy[feature].map(lambda a: normalize_input_1(a, min_value, max_value))
     return df_copy
 
 
-# update data
+## --------------       Normalize before Annotation         --------------------
 for individual_performance in performance_list:
     sensor_data = [f for f in os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] +
                                          '/' + individual_performance + '/')
@@ -320,118 +337,119 @@ for individual_performance in performance_list:
     os.mkdir(source_path + save_to_folder + surgery_name_list[surgery_selected] +
              '/' + individual_performance)
 
-    for data_sample in sensor_data:
+    for sample_ind in range(len(sensor_data)):
         try:
             # read sensor data csv
             df = pd.read_csv(source_path + input_folder + surgery_name_list[surgery_selected] + '/'
-                             + individual_performance + '/' + data_sample)
+                             + individual_performance + '/' + sensor_data[sample_ind])
 
         except pd.errors.EmptyDataError:
             continue
 
         # normalize position between custom thresholds, between 0 nad 1
-
-        # df = normalize_dataframe_column_custom(pos_x[0], pos_x[1], df, ['X'])
-        # df = normalize_dataframe_column_custom(pos_y[0], pos_y[1], df, ['Y'])
-        # df = normalize_dataframe_column_custom(pos_z[0], pos_z[1], df, ['Z'])
-        #
-        # df = normalize_dataframe_column_custom(vel_x[0], vel_x[1], df, ['Vx'])
-        # df = normalize_dataframe_column_custom(vel_y[0], vel_y[1], df, ['Vy'])
-        # df = normalize_dataframe_column_custom(vel_z[0], vel_z[1], df, ['Vz'])
-        #
-        # df = normalize_dataframe_column_custom(ang_vel_x[0], ang_vel_x[1], df, ['VQx'])
-        # df = normalize_dataframe_column_custom(ang_vel_y[0], ang_vel_y[1], df, ['VQy'])
-        # df = normalize_dataframe_column_custom(ang_vel_z[0], ang_vel_z[1], df, ['VQz'])
-
-        df = normalize_column(df, ['X'], mode=1)
-        df = normalize_column(df, ['Y'], mode=1)
-        df = normalize_column(df, ['Z'], mode=1)
-        df = normalize_column(df, ['Vx'], mode=1)
-        df = normalize_column(df, ['Vy'], mode=1)
-        df = normalize_column(df, ['Vz'], mode=1)
-        df = normalize_column(df, ['VQx'], mode=1)
-        df = normalize_column(df, ['VQy'], mode=1)
-        df = normalize_column(df, ['VQz'], mode=1)
+        df = normalize_column(df, ['X'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][0][0],
+                              max_value=norm_thresholds_thor[sample_ind][0][1])
+        df = normalize_column(df, ['Y'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][1][0],
+                              max_value=norm_thresholds_thor[sample_ind][1][1])
+        df = normalize_column(df, ['Z'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][2][0],
+                              max_value=norm_thresholds_thor[sample_ind][2][1])
+        df = normalize_column(df, ['Vx'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][3][0],
+                              max_value=norm_thresholds_thor[sample_ind][3][1])
+        df = normalize_column(df, ['Vy'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][4][0],
+                              max_value=norm_thresholds_thor[sample_ind][4][1])
+        df = normalize_column(df, ['Vz'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][5][0],
+                              max_value=norm_thresholds_thor[sample_ind][5][1])
+        df = normalize_column(df, ['VQx'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][6][0],
+                              max_value=norm_thresholds_thor[sample_ind][6][1])
+        df = normalize_column(df, ['VQy'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][7][0],
+                              max_value=norm_thresholds_thor[sample_ind][7][1])
+        df = normalize_column(df, ['VQz'], mode=0,
+                              min_value=norm_thresholds_thor[sample_ind][8][0],
+                              max_value=norm_thresholds_thor[sample_ind][8][1])
 
         header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
                        "Vy", "Vz", "VQx", "VQy", "VQz", "Pt", "Ot"]
 
         df = pd.DataFrame(df)
         df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
-                  '/' + individual_performance + '/' + data_sample, index=False, header=header_list)
+                  '/' + individual_performance + '/' + sensor_data[sample_ind], index=False, header=header_list)
 
-#
-# # --------------------------------------------------------------------------------------------------------- #
-# ## ---------------------      Annotate the data based on experience    ------------------------ ##
-#
-#
-# input_folder = '/Normalization'
-# save_to_folder = '/Annotated'
-#
-# # Get list of all data directories
-# performance_list = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
-#
-# # List of actions
-# actions_pericardiocentesis = []
-#
-#
-# # Create labels
-# def create_label_df(my_df, number_of_actions, action_index):
-#     # Create one-hot vector labels df
-#     num_of_rows = len(my_df.index)
-#     labels_arr = np.zeros((num_of_rows, number_of_actions))
-#     labels_arr[:, action_index] = 1
-#     return labels_arr
-#
-#
-# # update data
-# for individual_performance in performance_list:
-#     sensor_data = [f for f in os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] +
-#                                          '/' + individual_performance + '/')
-#                    if fnmatch.fnmatch(f, '*.csv')]
-#
-#     # Create folder to save all the sensor files
-#     os.mkdir(source_path + save_to_folder + surgery_name_list[surgery_selected] +
-#              '/' + individual_performance)
-#
-#     # Get experience level
-#     split_list = individual_performance.split('_')
-#     experience_level = split_list[1]
-#
-#     for data_sample in sensor_data:
-#         try:
-#             # read sensor data csv
-#             df = pd.read_csv(source_path + input_folder + surgery_name_list[surgery_selected] + '/'
-#                              + individual_performance + '/' + data_sample)
-#
-#         except pd.errors.EmptyDataError:
-#             continue
-#
-#         # check for the surgery selected
-#         if surgery_selected == 0:
-#             if fnmatch.fnmatch(data_sample, '0.csv'):
-#                 label_df = create_label_df(df, 2, 0)
-#             else:
-#                 label_df = create_label_df(df, 2, 1)
-#
-#             header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
-#                            "Vy", "Vz", "VQx", "VQy", "VQz", "Chloraprep", "NeedleInsertion"]
-#
-#         else:
-#             if fnmatch.fnmatch(data_sample, '0.csv'):
-#                 label_df = create_label_df(df, 4, 0)
-#             elif fnmatch.fnmatch(data_sample, '1.csv'):
-#                 label_df = create_label_df(df, 4, 1)
-#             elif fnmatch.fnmatch(data_sample, '2.csv'):
-#                 label_df = create_label_df(df, 4, 2)
-#             else:
-#                 label_df = create_label_df(df, 4, 3)
-#
-#             header_list = ["X", "Y", "Z", "W", "Qx", "Qy", "Qz", "Vx",
-#                            "Vy", "Vz", "VQx", "VQy", "VQz",
-#                            "Chloraprep", "Incision", "TrocarInsertion", "Anesthetization"]
-#
-#         df = np.hstack((df, label_df))
-#         df = pd.DataFrame(df)
-#         df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
-#                   '/' + individual_performance + '/' + data_sample, index=False, header=header_list)
+##  ---------------------           Normalize after annotation            -----------------------
+
+for surgical_task_idx in range(len(performance_list)):
+    sensor_data = [f for f in os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] +
+                                         '/' + performance_list[surgical_task_idx] + '/')
+                   if fnmatch.fnmatch(f, '*.csv')]
+
+    # Create folder to save all the sensor files
+    os.mkdir(source_path + save_to_folder + surgery_name_list[surgery_selected] +
+             '/' + performance_list[surgical_task_idx])
+
+    for sample_ind in range(len(sensor_data)):
+        try:
+            # read sensor data csv
+            df = pd.read_csv(source_path + input_folder + surgery_name_list[surgery_selected] + '/'
+                             + performance_list[surgical_task_idx] + '/' + sensor_data[sample_ind])
+
+        except pd.errors.EmptyDataError:
+            continue
+
+        # drop the time columns
+        df.drop(['Pt','Ot'], axis=1, inplace=True)
+
+        # normalize position between custom thresholds, between 0 nad 1
+        df = normalize_column(df, ['X'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][0][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][0][1])
+        df = normalize_column(df, ['Y'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][1][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][1][1])
+        df = normalize_column(df, ['Z'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][2][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][2][1])
+        df = normalize_column(df, ['Vx'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][3][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][3][1])
+        df = normalize_column(df, ['Vy'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][4][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][4][1])
+        df = normalize_column(df, ['Vz'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][5][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][5][1])
+        df = normalize_column(df, ['VQx'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][6][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][6][1])
+        df = normalize_column(df, ['VQy'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][7][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][7][1])
+        df = normalize_column(df, ['VQz'], mode=0,
+                              min_value=norm_thresholds_thor[surgical_task_idx][8][0],
+                              max_value=norm_thresholds_thor[surgical_task_idx][8][1])
+
+        header_list = ["X", "Y", "Z",
+                       "W", "Qx", "Qy", "Qz",
+                       "Vx", "Vy", "Vz",
+                       "VQx", "VQy", "VQz",
+                       "Novice", "Intermediate", "Expert"]
+        # header_list = ["X", "Y", "Z",
+        #                "W", "Qx", "Qy", "Qz",
+        #                "Vx", "Vy", "Vz",
+        #                "VQx", "VQy", "VQz",
+        #                "Similarity"]
+
+        df = pd.DataFrame(df)
+        df.to_csv(source_path + save_to_folder + surgery_name_list[surgery_selected] +
+                  '/' + performance_list[surgical_task_idx] + '/' +
+                  sensor_data[sample_ind], index=False, header=header_list)
+
+
+##
+
