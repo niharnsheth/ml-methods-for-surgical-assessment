@@ -35,8 +35,8 @@ action_name_list = [['Chloraprep', 'Needle Insertion'],
                     ['Chloraprep', 'Scalpel Incision', 'Trocar Insertion', 'Anesthetization']]
 
 input_folder = '/TrainingDataForComparison'
-save_model = '/07272021_GAP_1'
 save_to_folder = '/Results/Siamese'
+save_model = '/08102021_rigidSCNN_w100_pair1'
 
 ## 1 ---  Define hyper parameters  ---  #
 skill_levels = 3
@@ -45,14 +45,15 @@ no_sensors = 1
 features_per_sensor = 13
 n_features = no_sensors * features_per_sensor
 n_classes = 1  # number of outputs for classification
-epochs = 35
+epochs = 200
 
 random_seed = 11
 
 # sliding_window = 200
-sliding_window = [[100, 150], [100, 100, 200, 200]]
+sliding_window = [[100, 100], [100, 100, 100, 100]]
+sliding_w_dim = 100
 # window_step_size = 25
-window_step_size = [[10, 25], [10, 10, 25, 25]]
+window_step_size = [[10,10], [10, 10, 10, 10]]
 batch_size = 20
 # batch_size = [[10, 10], [10, 10, 10, 10]]
 
@@ -101,23 +102,26 @@ right_input_performance = Input((None, n_features))
 
 
 model = Sequential()
-model.add(Conv1D(filters=38, kernel_size=2, activation='relu', input_shape=(None, n_features)))
+model.add(Conv1D(filters=38, kernel_size=2, activation='relu', input_shape=(sliding_w_dim, n_features)))
 model.add(MaxPool1D(pool_size=2, strides=2))
 model.add(Dropout(0.25))
 model.add(Conv1D(filters=76, kernel_size=2, activation='relu'))
 model.add(MaxPool1D(pool_size=2, strides=2))
 model.add(Dropout(0.25))
-model.add(Conv1D(filters=156, kernel_size=2, activation='relu'))
+model.add(Conv1D(filters=152, kernel_size=2, activation='relu'))
 model.add(MaxPool1D(pool_size=2, strides=2))
-model.add(Dropout(0.5))
-model.add(Conv1D(filters=312, kernel_size=2, activation='relu'))
+model.add(Dropout(0.25))
+model.add(Conv1D(filters=308, kernel_size=2, activation='relu'))
 model.add(MaxPool1D(pool_size=2, strides=2))
-model.add(Dropout(0.5))
-
+model.add(Dropout(0.25))
+# model.add(Flatten())
+#model.add(Dense())
 model.add(GlobalAveragePooling1D())
 # model.add(Flatten())
+model.add(Dropout(0.5))
+model.add(Dense(3080, activation='sigmoid'))
 # model.add(Dropout(0.5))
-model.add(Dense(1560, activation='sigmoid'))
+# model.add(Dense(760, activation='sigmoid'))
 
 encoded_left = model(left_input_performance)
 encoded_right = model(right_input_performance)
@@ -139,7 +143,10 @@ plot_model(siamese_net, show_shapes=True, show_layer_names=True)
 
 ## --- Training process  --- ##
 print(' ------------- Training   ------------')
-total_runs = 5
+
+
+# Create folder to save the model and results
+os.mkdir(source_path + save_to_folder + save_model)
 # Create folder to save all the plots
 os.mkdir(source_path + save_to_folder + save_model + '/' + 'Graphs')
 
@@ -228,7 +235,7 @@ for surgery_selected in range(0, len(surgery_name_list)):
         right_input = []
         targets = []
         # number of pairs per image
-        pairs = 2
+        pairs = 1
         # get length of input data
         len_individual_input = len(expert_list)
         # create pairs with labels
@@ -306,6 +313,13 @@ for surgery_selected in range(0, len(surgery_name_list)):
         siamese_net.save(source_path + save_to_folder + save_model +
                          '/' + surgery_name_list[surgery_selected] +
                          '_' + surgical_tasks[action_selected] + '/', save_format='tf')
+
+        # save the history of training to csv file
+        train_hist_df = pd.DataFrame(history.history)
+        train_hist_df.to_csv(source_path + save_to_folder + save_model + '/'
+                             + surgery_name_list[surgery_selected] + '_'
+                             + str(action_selected) + '/'
+                             + action_name_list[surgery_selected][action_selected] + '.csv', index=False)
 
         plt.plot(history.history['loss'], label='loss')
         plt.plot(history.history['val_loss'], label='val_loss')

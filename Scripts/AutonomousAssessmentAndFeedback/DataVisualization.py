@@ -8,10 +8,8 @@
 
 import os
 import fnmatch
-import sqlite3
 import pandas as pd
 import numpy as np
-import quaternion as qt
 import matplotlib.pyplot as plt
 import time
 

@@ -41,10 +41,10 @@ n_features = no_sensors * features_per_sensor
 n_classes = 3  # number of outputs for classification
 epochs = [[35, 35], [40, 35, 35, 35]]
 
-sliding_window = [[150, 250], [125, 100, 200, 150]]
+sliding_window = [[100, 225], [100, 80, 200, 150]]
 window_step_size = 1
 
-batch_size = [[125, 100], [150, 75, 100, 125]]
+batch_size = [[200, 125], [150, 75, 100, 125]]
 learning_rate = 0.001
 set_rand_seed = 7
 random.seed(set_rand_seed)
@@ -79,16 +79,28 @@ def check_experience_level(experience):
         return 2
 
 
+# Return index for annotation
+def check_experience_level_1(experience):
+    if fnmatch.fnmatch(experience, 'Novice'):
+        return 0
+    elif fnmatch.fnmatch(experience, 'Intermediate'):
+        return 1
+    elif fnmatch.fnmatch(experience, 'Expert'):
+        return 2
+    else:
+        return 3
+
 # -----------------   LSTM ----------------------------------------- #
 ## --- tf.Keras implementation of LSTM layers --- #
 model = Sequential()
-opt = tf.keras.optimizers.SGD(lr=learning_rate, momentum=0.9, decay=1e-3)
+opt = tf.keras.optimizers.Adam(lr=learning_rate, momentum=0.9, decay=1e-3)
 #model.add(LSTM(n_units, input_shape=(sliding_window, n_features),return_sequences=True, name='lstm_layer_1'))
 #model.add(LSTM(n_units, name='lstm_layer_2'))
 model.add(LSTM(n_units, input_shape=(None, n_features), name='lstm_layer_1'))
-# model.add(LSTM(int(n_units/2), name='lstm_layer_2'))
 model.add(Dropout(0.5))
-model.add(Dense(n_units/2, activation='relu', name='projection_layer'))
+model.add(LSTM(int(n_units/2), name='lstm_layer_2'))
+model.add(Dropout(0.5))
+model.add(Dense(n_units, activation='relu', name='projection_layer'))
 model.add(Dense(n_classes, activation='softmax', name='output_layer'))
 model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
@@ -103,8 +115,11 @@ os.mkdir(source_path + save_to_folder + save_model + '/' + 'Graphs')
 for surgery_selected in range(0, len(surgery_name_list)):
     # train for each surgical task with procedure
     surgical_tasks = os.listdir(source_path + input_folder + surgery_name_list[surgery_selected] + '/')
+    # get the file that containes the manually annotated label details
+    manually_annotated_labels = pd.read_csv(source_path + "/" + surgery_name_list[surgery_selected][1:] + ".csv")
 
     for action_selected in range(len(surgical_tasks)):
+        print("Surgery: " + surgery_name_list[surgery_selected] + " -  Action: " + surgical_tasks[action_selected])
         # get data of surgical tasks
         csv_list = [f for f in os.listdir(source_path + input_folder +
                                           surgery_name_list[surgery_selected] + '/' +
@@ -127,10 +142,15 @@ for surgery_selected in range(0, len(surgery_name_list)):
             print(file + " has null values: " + str(check_if_null))
             df = df.dropna(how='any', axis=0)
 
+            # # Get experience level
+            # split_list = file.split('_')
+            # experience_level = split_list[1]
+            # exp_index = check_experience_level(experience_level)
             # Get experience level
-            split_list = file.split('_')
-            experience_level = split_list[1]
-            exp_index = check_experience_level(experience_level)
+            file_idx = manually_annotated_labels.index[manually_annotated_labels['PerformanceName'] == file[:-4]]
+            experience_level = manually_annotated_labels.iloc[file_idx][surgical_tasks[action_selected]].iloc[0]
+            exp_index = check_experience_level_1(experience_level)
+
 
             # create motion windows and separate data into input and output
             # feature_list, label_list = create_motion_windows(random.choice(sliding_window_2), df)w

@@ -1,4 +1,4 @@
-## --- Libraries   ---  #
+## --- Libraries   ---  ##
 # File imports and aggregates data from multiple databases
 import os
 import fnmatch
@@ -12,22 +12,22 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Flatten
+# from tensorflow.keras.layers import Flatten
 from tensorflow.keras.layers import Conv1D
 from tensorflow.keras.layers import MaxPool1D
-from tensorflow.keras.layers import GlobalAvgPool1D
-from tensorflow.keras.regularizers import l2
+from tensorflow.keras.layers import GlobalAvgPool1D, Flatten
+# from tensorflow.keras.regularizers import l2
 
 import matplotlib.pyplot as plt
 
 # File path to + the database files
-#source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
+# source_path = os.getcwd() + '/../../Nihar/ML-data/SurgicalData'
 # source_path = os.getcwd() + '/../../../../Nihar/ML-data/SurgicalData/Data_04152021'
 # source_path = os.getcwd() + '/../../../../Nihar/ML-data/SurgicalData/ManuallyCleaned_06262021'
 source_path = os.getcwd() + '/../../../../Nihar/ML-data/SurgicalData/Manually_Cleaned_And_Annotated_06272021'
 
 surgery_selected = 0
-#action_selected = 2
+# action_selected = 2
 
 # surgery_name_list = ['/Pericardiocentesis', '/Thoracentesis']
 surgery_name_list = ['/Pericardiocentesis', '/Thoracentesis']
@@ -35,24 +35,29 @@ action_name_list = [['Chloraprep', 'Needle Insertion'],
                     ['Chloraprep', 'Scalpel Incision', 'Trocar Insertion', 'Anesthetization']]
 # surgery_name_list = ['/Thoracentesis']
 input_folder = '/TrainingDataForClassification'
-save_model = '/07272021_deep_1'
 save_to_folder = '/Results/1D_CNN'
+save_model = '/08092021_refCNN_w180'
 
 
-## 1 ---  Define hyper parameters  ---  #
+##  ---  Define hyper parameters  ---  #
 skill_levels = 3
 
 no_sensors = 1
 features_per_sensor = 13
 num_of_labels = 3
 n_features = no_sensors * features_per_sensor
-n_classes = 3 # number of outputs for classification
-epochs = [[50, 50], [50, 50, 75, 50]]
+n_classes = 3  # number of outputs for classification
 
-sliding_window = [[100, 175], [100, 80, 175, 150]]
+# ------------- ideal training values  ---------------- #
+# epochs = [[50, 50], [50, 50, 75, 50]]
+# sliding_window = [[100, 175], [100, 80, 175, 150]]
+# batch_size = [[75, 125], [150, 75, 100, 125]]
+# ----------------------------------------------------#
+
+epochs = [[100, 100], [100, 100, 100, 100]]
+sliding_window = [[180, 180], [180, 180, 180, 180]]
 window_step_size = 1
-
-batch_size = [[75, 125], [150, 75, 100, 125]]
+batch_size = [[100, 100], [100, 100, 100, 100]]
 learning_rate = 0.001
 set_rand_seed = 11
 random.seed(set_rand_seed)
@@ -63,14 +68,14 @@ random.seed(set_rand_seed)
 def create_motion_windows(window_span, df_to_change, step_size, number_of_features, number_of_labels):
     local_feature_df = []
     local_label_df = []
-    steps = range(len(df_to_change) - window_span)
+    # steps = range(len(df_to_change) - window_span)
     time_index = 0
     while time_index + window_span < len(df_to_change):
-        a = df_to_change.iloc[time_index:time_index + window_span, :-number_of_labels].reset_index(drop=True).to_numpy()
+        feat_local = df_to_change.iloc[time_index:time_index + window_span, :-number_of_labels].reset_index(drop=True).to_numpy()
         # a.reset_index(drop=True)
-        b = df_to_change.iloc[time_index + window_span, number_of_features:].reset_index(drop=True).to_numpy()
-        local_feature_df.append(a)
-        local_label_df.append(b)
+        lab_loc = df_to_change.iloc[time_index + window_span, number_of_features:].reset_index(drop=True).to_numpy()
+        local_feature_df.append(feat_local)
+        local_label_df.append(lab_loc)
         time_index += step_size
     return local_feature_df, local_label_df
 
@@ -87,41 +92,66 @@ def check_experience_level(experience):
         return 3
 
 
-## ----------------- FINALIZED  CNN 1D ----------------------------------------- #
+# ## ----------------- FINALIZED  CNN 1D ----------------------------------------- #
+#
+# # --- tf.Keras implementation of LSTM layers --- #
+# model = Sequential()
+# model.add(Conv1D(filters=38, kernel_size=2, activation='relu', input_shape=(None, n_features)))
+# model.add(MaxPool1D(pool_size=2, strides=2))
+# model.add(Dropout(0.25))
+# model.add(Conv1D(filters=76, kernel_size=2, activation='relu'))
+# model.add(MaxPool1D(pool_size=2, strides=2))
+# model.add(Dropout(0.25))
+# model.add(Conv1D(filters=152, kernel_size=2, activation='relu'))
+# model.add(MaxPool1D(pool_size=2, strides=2))
+# model.add(Dropout(0.25))
+# model.add(Conv1D(filters=304, kernel_size=2, activation='relu'))
+# model.add(MaxPool1D(pool_size=2, strides=2))
+# model.add(Dropout(0.25))
+# # model.add(Flatten())
+# model.add(GlobalAvgPool1D())
+# model.add(Dropout(0.5))
+# model.add(Dense(152, activation='relu'))
+# model.add(Dropout(0.5))
+# model.add(Dense(38, activation='relu'))
+# model.add(Dense(n_classes, activation='softmax'))
+# opt = tf.keras.optimizers.Adam(lr=learning_rate, decay=1e-3)
+#
+# model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+#
 
+## ----------------- REFERENCE  CNN 1D ----------------------------------------- #
 # --- tf.Keras implementation of LSTM layers --- #
 model = Sequential()
-model.add(Conv1D(filters=38, kernel_size=2, activation='relu', input_shape=(None, n_features)))
+model.add(Conv1D(filters=38, kernel_size=2, activation='relu', input_shape=(180, n_features)))
 model.add(MaxPool1D(pool_size=2, strides=2))
-model.add(Dropout(0.25))
+model.add(Dropout(0.2))
 model.add(Conv1D(filters=76, kernel_size=2, activation='relu'))
 model.add(MaxPool1D(pool_size=2, strides=2))
-model.add(Dropout(0.25))
-model.add(Conv1D(filters=156, kernel_size=2, activation='relu'))
+model.add(Dropout(0.2))
+model.add(Conv1D(filters=152, kernel_size=2, activation='relu'))
 model.add(MaxPool1D(pool_size=2, strides=2))
-model.add(Dropout(0.25))
-model.add(Conv1D(filters=312, kernel_size=2, activation='relu'))
-model.add(MaxPool1D(pool_size=2, strides=2))
-model.add(Dropout(0.25))
-# model.add(Flatten())
-model.add(GlobalAvgPool1D())
+model.add(Dropout(0.2))
+model.add(Flatten())
 model.add(Dropout(0.5))
+model.add(Dense(64, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(32, activation='relu'))
 model.add(Dense(n_classes, activation='softmax'))
 opt = tf.keras.optimizers.Adam(lr=learning_rate, decay=1e-3)
 
 model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
 
-
-
 ## --- Training process  ---  #
 print(' ------------- Training   ------------')
 
-
+# Create folder to save the model and results
+os.mkdir(source_path + save_to_folder + save_model)
 # Create folder to save all the plots
 os.mkdir(source_path + save_to_folder + save_model + '/' + 'Graphs')
 # train for all surgical procedures
-for surgery_selected in range(0,len(surgery_name_list)):
+for surgery_selected in range(0, len(surgery_name_list)):
     manually_annotated_labels = pd.read_csv(source_path + "/" + surgery_name_list[surgery_selected][1:] + ".csv")
 
     # train for each surgical task with procedure
@@ -159,7 +189,7 @@ for surgery_selected in range(0,len(surgery_name_list)):
             # exp_index = check_experience_level(experience_level)
 
             # create motion windows and separate data into input and output
-            # feature_list, label_list = create_motion_windows(random.choice(sliding_window_2), df)w
+            # feature_list, label_list = create_motion_windows(random.choice(sliding_window_2), df)
             feature_list, label_list = create_motion_windows(sliding_window[surgery_selected][action_selected], df,
                                                              window_step_size,
                                                              features_per_sensor,
@@ -222,7 +252,7 @@ for surgery_selected in range(0,len(surgery_name_list)):
         history = model.fit(x_train, y_train,
                             epochs=epochs[surgery_selected][action_selected],
                             batch_size=batch_size[surgery_selected][action_selected],
-                            validation_split=0.2,
+                            validation_split=0.15,
                             verbose=2)
         # display summary of training
         model.summary()
@@ -264,3 +294,9 @@ for surgery_selected in range(0,len(surgery_name_list)):
                    '/' + surgery_name_list[surgery_selected] +
                    '_' + str(action_selected) + '/', save_format='tf')
 
+        # save the history of training to csv file
+        train_hist_df = pd.DataFrame(history.history)
+        train_hist_df.to_csv(source_path + save_to_folder + save_model + '/'
+                             + surgery_name_list[surgery_selected] + '_'
+                             + str(action_selected) + '/'
+                             + action_name_list[surgery_selected][action_selected] + '.csv', index=False)
