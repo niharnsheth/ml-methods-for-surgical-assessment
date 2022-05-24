@@ -10,6 +10,7 @@ There is a publically available dataset called JIGSAWS which contains surgical p
 The script was writtent to observe the distribution of features in the dataset. Mainly to recognize the outliers and determine the thresholds (min, max) for normalization of the features. 
 
 ## Feature Engineering
+The process entails the following:
 1. The dataset was first manually cleaned to remove the parts of actions not related to surgical tasks.
 2. Feature transformaion for orientation values to convert Euler Angles to Quaternions.
 3. Additional features such as linear and rotational velocities were calculated through available time stamps for position and orientaiton values.
