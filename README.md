@@ -4,7 +4,7 @@ Respository contains some machine learning models developed for classifying surg
 ## Datasets
 The scripts are written for a dataset generated through our APSS (Autonomous Platform for Surgical Simualtion) simulator. The data generated is not uploaded here, since its still under wraps and being worked on. The dataset contains kinematics for two surgical procedures: Pericardiocentesis (PCS) and Thoracentesis TCS). PCS has 2 surgical actions and TCS has 4. So the scripts are written to train a total of 6 separate models using the same network, to classify skills for each surgical task. 
 
-There is a publically available dataset called JIGSAWS which contains surgical performance data in the form of kinematics and videos, that is made available here. The dataset contains 3 surgical tasks performed using the surgical robot called DaVinci. There are differences in features and labels between our dataset and JIGSAWS, so naturally the scripts need to be editted to train for this dataset, however the overall fucntion remains the similar. 
+There is a publically available dataset called JIGSAWS which contains surgical performance data in the form of kinematics and videos, that is made available here. The dataset contains 3 surgical tasks performed using the surgical robot called DaVinci. There are differences in features and labels between our dataset and JIGSAWS, so naturally the scripts need to be editted to train for this dataset, however the overall function remains similar. 
 
 ## Data Visualization
 The script was writtent to observe the distribution of features in the dataset. Mainly to recognize the outliers and determine the thresholds (min, max) for normalization of the features. 
