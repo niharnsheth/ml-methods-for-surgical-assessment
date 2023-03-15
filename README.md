@@ -1,3 +1,5 @@
+## NOTE TO USER: Have moved the code to a different repository recently, please check the following for all new projects and updates: https://github.com/niharnsheth/ml_keepsakes.git
+
 # Machine Learing methods for Surgical Assessment
 Respository contains some machine learning models developed for classifying surgical skills (Novice, Intermediate and Expert) or comparing surgical skills (Similarity value) from surgical performance datasets.
 
